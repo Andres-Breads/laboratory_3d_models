@@ -44,8 +44,7 @@
             scene = new THREE.Scene();
 
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 20000);
-            camera.position.z = 3;
-            //camera.position.set( 2, 5, 1 );
+            camera.position.set( 2, 5, 2 );
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             // renderer.setPixelRatio( window.devicePixelRatio );
@@ -60,11 +59,11 @@
             document.body.appendChild(container);
             container.appendChild(renderer.domElement);
 
-            const pointLight = new THREE.PointLight( 0xffffff );
+            const pointLight = new THREE.PointLight( 0xeeeeee, 0.8 );
             pointLight.position.set(10, 50, 20);
             scene.add( pointLight );
 
-            const ambientLight = new THREE.AmbientLight( 0xffffff );
+            const ambientLight = new THREE.AmbientLight( 0xff77ff, 0.4 );
             scene.add( ambientLight );
 
             // model
@@ -83,14 +82,23 @@
 
             // material
             const mtlLoader = new MTLLoader();
-            mtlLoader.load( './models/PLANTS_ON_TABLE_10K.mtl', function (materials) {
-                //materials.preload();
+            const objLoader = new OBJLoader();
 
-                let objLoader = new OBJLoader();
+            mtlLoader.load( './models/PLANTS_ON_TABLE_10K.mtl', function (materials) {
+                materials.preload();
+
                 objLoader.setMaterials(materials)
                 objLoader.load( './models/PLANTS_ON_TABLE_10K.obj', function ( obj ) {
+                    const textureLoader = new THREE.TextureLoader();
+                    const texture = textureLoader.load( './models/PLANTS_ON_TABLE_10K_u1_v1.jpg' );
+                    obj.traverse( function ( child ) {
+                        if ( child.isMesh ) child.material = new THREE.MeshPhongMaterial({
+                            map: texture
+                        });
+                    });
                     mainObject.add(obj);
                     mainObject.position.y = -0.5;
+                    mainObject.scale.set( 2.5, 2.5, 2.5);
                 }, onProgress, onError );
 
             }, onProgress, onError );
