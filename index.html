@@ -21,53 +21,117 @@
     <script type="module">
         import * as THREE from "three";
         import {OrbitControls} from "./js/OrbitCOntrols.js";
-        // Creating scene
-        var scene = new THREE.Scene();
-        scene.background = new THREE.Color("rgb(25, 25, 25)");
-        // scene.fog = new THREE.Fog("rgb(100, 100, 100)", 0.1, 8);
+        import {OBJLoader} from "./js/OBJLoader.js";
+        import {MTLLoader} from "./js/MTLLoader.js";
 
-        var loader = new THREE.TextureLoader();
-        loader.load("./living-room-with-yellow-armchair-empty-dark-blue-wall-background-3d-rendering.jpg", function (texture) {
-            scene.background = texture;
-        })
+        let container;
 
-        // add camera
-        var camera = new THREE.PerspectiveCamera(
-            75,
-            window.innerWidth/window.innerHeight,
-            0.1,
-            2000
-        );
-        camera.position.z = 5
+        let camera, scene, renderer;
 
-        // renderer
-        var renderer = new THREE.WebGLRenderer();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+        let mouseX = 0, mouseY = 0;
 
-        // add geometry
-        var geometry = new THREE.BoxGeometry();
-        var material = new THREE.MeshBasicMaterial({
-            color: "rgb(0, 240, 100)",
-            wireframe: true
-        });
-        var cube = new THREE.Mesh(geometry, material);
+        let windowHalfX = window.innerWidth / 2;
+        let windowHalfY = window.innerHeight / 2;
 
-        scene.add(cube);
+        let mainObject;
 
-        var controls = new OrbitControls(camera, renderer.domElement);
+        let controls;
 
-        // animation
-        var animate = function () {
-            requestAnimationFrame(animate);
+        init();
+        animate();
 
-            cube.rotation.x += 0.01;
-            cube.rotation.y += 0.01;
+        function init() {
+            scene = new THREE.Scene();
 
-            renderer.render(scene, camera);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 20000);
+            camera.position.z = 3;
+            //camera.position.set( 2, 5, 1 );
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            // renderer.setPixelRatio( window.devicePixelRatio );
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor( 0xeeeeee, 1 );
+
+            // controls
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableZoom = true;
+
+            container = document.createElement('div');
+            document.body.appendChild(container);
+            container.appendChild(renderer.domElement);
+
+            const pointLight = new THREE.PointLight( 0xffffff );
+            pointLight.position.set(10, 50, 20);
+            scene.add( pointLight );
+
+            const ambientLight = new THREE.AmbientLight( 0xffffff );
+            scene.add( ambientLight );
+
+            // model
+            function onProgress( xhr ) {
+                if ( xhr.lengthComputable ) {
+                    const percentComplete = xhr.loaded / xhr.total * 100;
+                    console.log( 'model ' + Math.round( percentComplete, 2 ) + '% downloaded' );
+                }
+            }
+
+            function onError( err ) {
+                console.error('An error happened: ' + err);
+            }
+
+            mainObject = new THREE.Object3D();
+
+            // material
+            const mtlLoader = new MTLLoader();
+            mtlLoader.load( './models/PLANTS_ON_TABLE_10K.mtl', function (materials) {
+                //materials.preload();
+
+                let objLoader = new OBJLoader();
+                objLoader.setMaterials(materials)
+                objLoader.load( './models/PLANTS_ON_TABLE_10K.obj', function ( obj ) {
+                    mainObject.add(obj);
+                    mainObject.position.y = -0.5;
+                }, onProgress, onError );
+
+            }, onProgress, onError );
+
+            scene.add( mainObject );
+
+            document.addEventListener( 'mousemove', onDocumentMouseMove );
+
+            window.addEventListener( 'resize', onWindowResize );
         }
 
-        animate();
+        function onWindowResize() {
+            windowHalfX = window.innerWidth / 2;
+            windowHalfY = window.innerHeight / 2;
+
+            camera.aspect = window.innerWidth/window.innerHeight;
+            camera.updateProjectionMatrix()
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function onDocumentMouseMove( event ) {
+            mouseX = ( event.clientX - windowHalfX ) / 2;
+            mouseY = ( event.clientY - windowHalfY ) / 2;
+        }
+
+        // animation
+        function animate() {
+            requestAnimationFrame(animate);
+            render();
+        }
+
+        function render() {
+            camera.lookAt( scene.position );
+
+            mainObject.rotation.x += 0.01;
+            mainObject.rotation.y += 0.02;
+
+            renderer.render( scene, camera );
+            controls.update();
+        }
     </script>
 </body>
 </html>
