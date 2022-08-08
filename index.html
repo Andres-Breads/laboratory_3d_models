@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My first three.js app</title>
+    <style>
+        body { margin: 0; }
+    </style>
+</head>
+<body>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "./js/three.module.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from "three";
+        import {OrbitControls} from "./js/OrbitCOntrols.js";
+        // Creating scene
+        var scene = new THREE.Scene();
+        scene.background = new THREE.Color("rgb(25, 25, 25)");
+        // scene.fog = new THREE.Fog("rgb(100, 100, 100)", 0.1, 8);
+
+        var loader = new THREE.TextureLoader();
+        loader.load("./living-room-with-yellow-armchair-empty-dark-blue-wall-background-3d-rendering.jpg", function (texture) {
+            scene.background = texture;
+        })
+
+        // add camera
+        var camera = new THREE.PerspectiveCamera(
+            75,
+            window.innerWidth/window.innerHeight,
+            0.1,
+            2000
+        );
+        camera.position.z = 5
+
+        // renderer
+        var renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // add geometry
+        var geometry = new THREE.BoxGeometry();
+        var material = new THREE.MeshBasicMaterial({
+            color: "rgb(0, 240, 100)",
+            wireframe: true
+        });
+        var cube = new THREE.Mesh(geometry, material);
+
+        scene.add(cube);
+
+        var controls = new OrbitControls(camera, renderer.domElement);
+
+        // animation
+        var animate = function () {
+            requestAnimationFrame(animate);
+
+            cube.rotation.x += 0.01;
+            cube.rotation.y += 0.01;
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
