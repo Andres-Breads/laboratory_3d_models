@@ -33,8 +33,6 @@
         let windowHalfX = window.innerWidth / 2;
         let windowHalfY = window.innerHeight / 2;
 
-        let mainObject;
-
         let controls;
 
         init();
@@ -44,10 +42,10 @@
             scene = new THREE.Scene();
 
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 20000);
-            camera.position.set( 2, 5, 2 );
+            camera.position.set(20, 20, 10);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
-            // renderer.setPixelRatio( window.devicePixelRatio );
+            renderer.setPixelRatio( window.devicePixelRatio );
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setClearColor( 0xeeeeee, 1 );
 
@@ -60,13 +58,37 @@
             container.appendChild(renderer.domElement);
 
             const pointLight = new THREE.PointLight( 0xeeeeee, 0.8 );
-            pointLight.position.set(10, 50, 20);
+            pointLight.position.set(20, 50, 10);
             scene.add( pointLight );
 
             const ambientLight = new THREE.AmbientLight( 0xff77ff, 0.4 );
             scene.add( ambientLight );
 
-            // model
+            let plantsObject = new THREE.Object3D();
+            loadObject(plantsObject, './models/PLANTS_ON_TABLE_10K.mtl', './models/PLANTS_ON_TABLE_10K.obj', './models/PLANTS_ON_TABLE_10K_u1_v1.jpg');
+            plantsObject.scale.set(10, 10, 10);
+            scene.add( plantsObject );
+
+            let chairObject = new THREE.Object3D();
+            loadObject(chairObject, './models/modern chair 11 obj.mtl', './models/modern chair 11 obj.obj');
+            chairObject.scale.set(0.15, 0.15, 0.15);
+            chairObject.position.z = -11;
+            scene.add( chairObject );
+
+            let secondChairObject = new THREE.Object3D();
+            loadObject(secondChairObject, './models/modern chair 11 obj.mtl', './models/modern chair 11 obj.obj');
+            secondChairObject.scale.set(0.15, 0.15, 0.15);
+            secondChairObject.position.z = 10;
+            secondChairObject.rotation.y += Math.PI + 0.05;
+            scene.add( secondChairObject );
+
+            document.addEventListener( 'mousemove', onDocumentMouseMove );
+
+            window.addEventListener( 'resize', onWindowResize );
+        }
+
+        async function loadObject(objectInScene, mtlUrl, objUrl, textureUrl = null) {
+
             function onProgress( xhr ) {
                 if ( xhr.lengthComputable ) {
                     const percentComplete = xhr.loaded / xhr.total * 100;
@@ -74,40 +96,57 @@
                 }
             }
 
-            function onError( err ) {
-                console.error('An error happened: ' + err);
+            const loadMtl = (mtlLoader, mtlUrl) => {
+                return new Promise((resolve, reject) => {
+                    mtlLoader.load(mtlUrl, function (materials) {
+                        materials.preload()
+                        resolve(materials)
+                    },
+                    onProgress,
+                    (err) => {
+                        console.error('An error happened: ' + err);
+                        reject(err)
+                    })
+                })
             }
 
-            mainObject = new THREE.Object3D();
+            const loadObj = (objLoader, objUrl) => {
+                return new Promise((resolve, reject) => {
+                    objLoader.load(objUrl, function (obj) {
+                        resolve(obj)
+                    },
+                    onProgress,
+                    (err) => {
+                        console.error('An error happened: ' + err);
+                        reject(err)
+                    })
+                })
+            }
 
-            // material
-            const mtlLoader = new MTLLoader();
-            const objLoader = new OBJLoader();
+            const loadTexture = (textureUrl, obj) => {
+                const textureLoader = new THREE.TextureLoader();
+                const texture = textureLoader.load(textureUrl);
 
-            mtlLoader.load( './models/PLANTS_ON_TABLE_10K.mtl', function (materials) {
-                materials.preload();
-
-                objLoader.setMaterials(materials)
-                objLoader.load( './models/PLANTS_ON_TABLE_10K.obj', function ( obj ) {
-                    const textureLoader = new THREE.TextureLoader();
-                    const texture = textureLoader.load( './models/PLANTS_ON_TABLE_10K_u1_v1.jpg' );
-                    obj.traverse( function ( child ) {
-                        if ( child.isMesh ) child.material = new THREE.MeshPhongMaterial({
-                            map: texture
-                        });
+                obj.traverse( function ( child ) {
+                    if ( child.isMesh ) child.material = new THREE.MeshPhongMaterial({
+                        map: texture
                     });
-                    mainObject.add(obj);
-                    mainObject.position.y = -0.5;
-                    mainObject.scale.set( 2.5, 2.5, 2.5);
-                }, onProgress, onError );
+                });
+            }
 
-            }, onProgress, onError );
+            const mtlLoader = new MTLLoader()
+            const objLoader = new OBJLoader()
 
-            scene.add( mainObject );
+            let materials = await loadMtl(mtlLoader, mtlUrl)
+            objLoader.setMaterials(materials)
 
-            document.addEventListener( 'mousemove', onDocumentMouseMove );
+            let obj = await loadObj(objLoader, objUrl)
 
-            window.addEventListener( 'resize', onWindowResize );
+            if (textureUrl !== null) {
+                loadTexture(textureUrl, obj);
+            }
+
+            objectInScene.add(obj);
         }
 
         function onWindowResize() {
@@ -133,10 +172,6 @@
 
         function render() {
             camera.lookAt( scene.position );
-
-            mainObject.rotation.x += 0.01;
-            mainObject.rotation.y += 0.02;
-
             renderer.render( scene, camera );
             controls.update();
         }
